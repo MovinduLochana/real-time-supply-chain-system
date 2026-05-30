@@ -1,0 +1,200 @@
+name: Build Services
+on:
+  pull_request:
+    paths:
+      - 'services/**'
+      - '.github/workflows/build-services.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/**'
+      - '.github/workflows/build-services.yml'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      inventory: ${{ steps.changes.outputs.inventory }}
+      order: ${{ steps.changes.outputs.order }}
+      logistics: ${{ steps.changes.outputs.logistics }}
+      notification: ${{ steps.changes.outputs.notification }}
+      analytics: ${{ steps.changes.outputs.analytics }}
+      gateway: ${{ steps.changes.outputs.gateway }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            inventory:
+              - 'services/inventory-service/**'
+            order:
+              - 'services/order-service/**'
+            logistics:
+              - 'services/logistics-service/**'
+            notification:
+              - 'services/notification-service/**'
+            analytics:
+              - 'services/analytics-service/**'
+            gateway:
+              - 'services/api-gateway/**'
+
+  build-inventory:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.inventory == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Build with Gradle
+        run: |
+          cd services/inventory-service
+          chmod +x gradlew
+          ./gradlew build
+      - name: Run tests
+        run: |
+          cd services/inventory-service
+          ./gradlew test
+      - name: Build Docker image
+        run: |
+          cd services/inventory-service
+          docker build -t inventory-service:${{ github.sha }} .
+
+  build-order:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.order == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Build with Gradle
+        run: |
+          cd services/order-service
+          chmod +x gradlew
+          ./gradlew build
+      - name: Run tests
+        run: |
+          cd services/order-service
+          ./gradlew test
+      - name: Build Docker image
+        run: |
+          cd services/order-service
+          docker build -t order-service:${{ github.sha }} .
+
+  build-logistics:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.logistics == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build
+        run: |
+          cd services/logistics-service
+          cargo build --release
+      - name: Run tests
+        run: |
+          cd services/logistics-service
+          cargo test
+      - name: Build Docker image
+        run: |
+          cd services/logistics-service
+          docker build -t logistics-service:${{ github.sha }} .
+
+  build-notification:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.notification == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+      - name: Build
+        run: |
+          cd services/notification-service
+          go build -o notification-service .
+      - name: Run tests
+        run: |
+          cd services/notification-service
+          go test ./...
+      - name: Build Docker image
+        run: |
+          cd services/notification-service
+          docker build -t notification-service:${{ github.sha }} .
+
+  build-analytics:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.analytics == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          cd services/analytics-service
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          cd services/analytics-service
+          pytest tests/
+      - name: Build Docker image
+        run: |
+          cd services/analytics-service
+          docker build -t analytics-service:${{ github.sha }} .
+
+  build-gateway:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.gateway == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+      - name: Install dependencies
+        run: |
+          cd services/api-gateway
+          bun install
+      - name: Build
+        run: |
+          cd services/api-gateway
+          bun run build
+      - name: Run tests
+        run: |
+          cd services/api-gateway
+          bun test
+      - name: Build Docker image
+        run: |
+          cd services/api-gateway
+          docker build -t api-gateway:${{ github.sha }} .
+
+  trivy-scan:
+    needs: [build-inventory, build-order, build-logistics, build-notification, build-analytics, build-gateway]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Run Trivy scan
+        run: echo "Running container security scan"

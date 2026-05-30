@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: inventory-service
+  namespace: rtscs-services
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: order-service
+  namespace: rtscs-services
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: logistics-service
+  namespace: rtscs-services
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: notification-service
+  namespace: rtscs-services
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: analytics-service
+  namespace: rtscs-services
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api-gateway
+  namespace: rtscs-services
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: rtscs-services
+rules:
+- apiGroups: [""]
+  resources: ["pods", "configmaps"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: rtscs-services
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pod-reader
+subjects:
+- kind: ServiceAccount
+  name: inventory-service
+  namespace: rtscs-services
+- kind: ServiceAccount
+  name: order-service
+  namespace: rtscs-services
+- kind: ServiceAccount
+  name: logistics-service
+  namespace: rtscs-services
+- kind: ServiceAccount
+  name: notification-service
+  namespace: rtscs-services
+- kind: ServiceAccount
+  name: analytics-service
+  namespace: rtscs-services
+- kind: ServiceAccount
+  name: api-gateway
+  namespace: rtscs-services

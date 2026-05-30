@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: rtscs-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+        version: v1
+    spec:
+      serviceAccountName: notification-service
+      containers:
+      - name: notification-service
+        image: placeholder/notification-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 50051
+          name: grpc
+        env:
+        - name: POSTGRES_HOST
+          value: postgres.rtscs-data.svc.cluster.local
+        - name: POSTGRES_DB
+          value: rtscs_notification
+        - name: KAFKA_BROKERS
+          value: kafka-bootstrap.rtscs-data.svc.cluster.local:9092
+        - name: REDIS_HOST
+          value: redis.rtscs-data.svc.cluster.local
+        - name: REDIS_PORT
+          value: "6379"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

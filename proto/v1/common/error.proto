@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package rtscs.common.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/common/v1;commonv1";
+option java_package = "com.rtscs.proto.common.v1";
+option java_multiple_files = true;
+
+// ErrorInfo contains detailed error information
+message ErrorInfo {
+  // Standard gRPC error codes mapped to HTTP status
+  // 0 = OK, 1 = CANCELLED, 2 = UNKNOWN, 3 = INVALID_ARGUMENT, 4 = DEADLINE_EXCEEDED,
+  // 5 = NOT_FOUND, 6 = ALREADY_EXISTS, 7 = PERMISSION_DENIED, 8 = RESOURCE_EXHAUSTED,
+  // 9 = FAILED_PRECONDITION, 10 = ABORTED, 11 = OUT_OF_RANGE, 12 = UNIMPLEMENTED,
+  // 13 = INTERNAL, 14 = UNAVAILABLE, 15 = DATA_LOSS, 16 = UNAUTHENTICATED
+  int32 code = 1;
+  
+  string message = 2;
+  
+  // Additional context-specific details
+  map<string, string> details = 3;
+}

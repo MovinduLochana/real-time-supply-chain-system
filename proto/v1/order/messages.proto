@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package rtscs.order.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/order/v1;orderv1";
+option java_package = "com.rtscs.proto.order.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// Order represents a customer order
+message Order {
+  string order_id = 1;
+  string customer_id = 2;
+  repeated LineItem line_items = 3;
+  enum Status {
+    PENDING = 0;
+    CONFIRMED = 1;
+    SHIPPED = 2;
+    DELIVERED = 3;
+    CANCELLED = 4;
+    FAILED = 5;
+  }
+  Status status = 4;
+  double total_amount = 5;
+  string shipping_address = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// LineItem is an individual line in an order
+message LineItem {
+  string item_sku = 1;
+  string item_name = 2;
+  int32 quantity = 3;
+  double unit_price = 4;
+  double subtotal = 5;
+}
+
+// OrderEvent is published to Kafka for async processing
+message OrderEvent {
+  string order_id = 1;
+  enum EventType {
+    ORDER_CREATED = 0;
+    ORDER_CONFIRMED = 1;
+    ORDER_SHIPPED = 2;
+    ORDER_DELIVERED = 3;
+    ORDER_CANCELLED = 4;
+    ORDER_FAILED = 5;
+  }
+  EventType event_type = 2;
+  Order order = 3;
+  google.protobuf.Timestamp event_timestamp = 4;
+  string correlation_id = 5;  // For tracing across services
+}

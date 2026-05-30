@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package rtscs.logistics.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/logistics/v1;logisticsv1";
+option java_package = "com.rtscs.proto.logistics.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// Shipment represents a physical shipment/delivery
+message Shipment {
+  string shipment_id = 1;
+  string order_id = 2;
+  string carrier = 3;                  // e.g., "FedEx", "UPS", "DHL"
+  string tracking_number = 4;
+  enum Status {
+    CREATED = 0;
+    IN_TRANSIT = 1;
+    OUT_FOR_DELIVERY = 2;
+    DELIVERED = 3;
+    FAILED = 4;
+    CANCELLED = 5;
+  }
+  Status status = 5;
+  Location current_location = 6;
+  string destination_address = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  google.protobuf.Timestamp estimated_delivery = 10;
+}
+
+// Location represents GPS/geographic data
+message Location {
+  double latitude = 1;
+  double longitude = 2;
+  double accuracy_meters = 3;
+  string address = 4;           // Reverse geocoded address (optional)
+  google.protobuf.Timestamp recorded_at = 5;
+}
+
+// TrackingEvent represents state changes in shipment
+message TrackingEvent {
+  string tracking_id = 1;
+  string shipment_id = 2;
+  enum EventType {
+    SHIPMENT_CREATED = 0;
+    LOCATION_UPDATED = 1;
+    STATUS_CHANGED = 2;
+    DELIVERY_ATTEMPTED = 3;
+    DELIVERED = 4;
+    FAILED = 5;
+  }
+  EventType event_type = 3;
+  Location location = 4;
+  Shipment.Status new_status = 5;
+  string message = 6;
+  google.protobuf.Timestamp event_timestamp = 7;
+}

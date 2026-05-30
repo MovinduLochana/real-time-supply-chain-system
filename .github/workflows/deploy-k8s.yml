@@ -1,0 +1,43 @@
+name: Deploy to Kubernetes
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/k8s/**'
+      - '.github/workflows/deploy-k8s.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Set up Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f infra/k8s/system/
+          kubectl apply -k infra/k8s/apps/
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment -n rtscs-services --timeout=5m
+
+  argocd-sync:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync Argo CD applications
+        run: |
+          echo "Triggering Argo CD sync (requires webhook configuration)"
+          # This would typically call Argo CD API or use a webhook

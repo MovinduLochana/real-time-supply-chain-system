@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package rtscs.inventory.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/inventory/v1;inventoryv1";
+option java_package = "com.rtscs.proto.inventory.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// Item represents a product in inventory
+message Item {
+  string sku = 1;                    // Stock Keeping Unit (unique identifier)
+  string name = 2;
+  string description = 3;
+  double price = 4;
+  string category = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// StockLevel represents current inventory at a warehouse
+message StockLevel {
+  string item_sku = 1;
+  string warehouse_location = 2;    // e.g., "US_EAST_1", "EU_WEST_1"
+  int32 quantity_on_hand = 3;
+  int32 quantity_reserved = 4;
+  int32 quantity_available = 5;     // on_hand - reserved
+  google.protobuf.Timestamp last_counted_at = 6;
+}
+
+// Reservation tracks reserved inventory for orders
+message Reservation {
+  string reservation_id = 1;
+  string order_id = 2;
+  string item_sku = 3;
+  int32 quantity_reserved = 4;
+  enum Status {
+    PENDING = 0;
+    CONFIRMED = 1;
+    RELEASED = 2;
+    EXPIRED = 3;
+  }
+  Status status = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp expires_at = 7;
+}

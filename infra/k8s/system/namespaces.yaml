@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rtscs-services
+  labels:
+    name: rtscs-services
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rtscs-data
+  labels:
+    name: rtscs-data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    name: observability

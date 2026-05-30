@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: rtscs-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        version: v1
+    spec:
+      serviceAccountName: api-gateway
+      containers:
+      - name: api-gateway
+        image: placeholder/api-gateway:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: PORT
+          value: "8000"
+        - name: NODE_ENV
+          value: production
+        - name: INVENTORY_SERVICE_URL
+          value: inventory-service.rtscs-services.svc.cluster.local:50051
+        - name: ORDER_SERVICE_URL
+          value: order-service.rtscs-services.svc.cluster.local:50051
+        - name: LOGISTICS_SERVICE_URL
+          value: logistics-service.rtscs-services.svc.cluster.local:50051
+        - name: NOTIFICATION_SERVICE_URL
+          value: notification-service.rtscs-services.svc.cluster.local:50051
+        - name: ANALYTICS_SERVICE_URL
+          value: analytics-service.rtscs-services.svc.cluster.local:50051
+        - name: REDIS_HOST
+          value: redis.rtscs-data.svc.cluster.local
+        - name: REDIS_PORT
+          value: "6379"
+        - name: KEYCLOAK_REALM_URL
+          value: http://keycloak.rtscs-services.svc.cluster.local:8080
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

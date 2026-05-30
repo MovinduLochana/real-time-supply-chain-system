@@ -1,0 +1,66 @@
+# Protobuf generated code
+proto/generated/
+*.pb.go
+*.pb.java
+*.pb.ts
+*_pb2.py
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+target/
+dist/
+build/
+*.jar
+*.class
+
+# Rust
+/target/
+Cargo.lock
+
+# Node/Bun
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+terraform.tfvars
+!local.tfvars
+
+# Local K8s
+kind-cluster-config.yaml
+.kubeconfig
+
+# Secrets
+.env.local
+.env.*.local
+secrets/
+
+# Logs
+*.log
+logs/
+
+# Temp
+tmp/
+temp/
+.tmp/

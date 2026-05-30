@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package rtscs.events.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/events/v1;eventsv1";
+option java_package = "com.rtscs.proto.events.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// StockUpdatedEvent is published when inventory quantity changes
+message StockUpdatedEvent {
+  string sku = 1;
+  string warehouse_location = 2;
+  int32 previous_quantity = 3;
+  int32 new_quantity = 4;
+  int32 quantity_delta = 5;
+  string reason = 6;  // e.g., "RESTOCK", "ORDER_RESERVED", "DAMAGED"
+  google.protobuf.Timestamp event_timestamp = 7;
+  string correlation_id = 8;
+}
+
+// StockReservedEvent is published when inventory is reserved for an order
+message StockReservedEvent {
+  string reservation_id = 1;
+  string order_id = 2;
+  string sku = 3;
+  int32 quantity_reserved = 4;
+  google.protobuf.Timestamp reserved_at = 5;
+  string correlation_id = 6;
+}
+
+// StockReleasedEvent is published when reservation is released
+message StockReleasedEvent {
+  string reservation_id = 1;
+  string order_id = 2;
+  string sku = 3;
+  int32 quantity_released = 4;
+  google.protobuf.Timestamp released_at = 5;
+  string correlation_id = 6;
+}
+
+// LowStockAlertEvent is published when stock falls below threshold
+message LowStockAlertEvent {
+  string sku = 1;
+  string warehouse_location = 2;
+  int32 current_quantity = 3;
+  int32 reorder_point = 4;
+  google.protobuf.Timestamp alert_timestamp = 5;
+  string correlation_id = 6;
+}

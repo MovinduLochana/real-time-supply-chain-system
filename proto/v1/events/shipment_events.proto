@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package rtscs.events.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/events/v1;eventsv1";
+option java_package = "com.rtscs.proto.events.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// ShipmentCreatedEvent is published when shipment is created
+message ShipmentCreatedEvent {
+  string shipment_id = 1;
+  string order_id = 2;
+  string carrier = 3;
+  string tracking_number = 4;
+  string destination_address = 5;
+  google.protobuf.Timestamp created_at = 6;
+  string correlation_id = 7;
+}
+
+// LocationUpdatedEvent is published on location change (high frequency)
+message LocationUpdatedEvent {
+  string shipment_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+  double accuracy_meters = 4;
+  string address = 5;
+  google.protobuf.Timestamp recorded_at = 6;
+  string correlation_id = 7;
+}
+
+// ShipmentStatusChangedEvent is published when status changes
+message ShipmentStatusChangedEvent {
+  string shipment_id = 1;
+  string order_id = 2;
+  enum Status {
+    CREATED = 0;
+    IN_TRANSIT = 1;
+    OUT_FOR_DELIVERY = 2;
+    DELIVERED = 3;
+    FAILED = 4;
+  }
+  Status previous_status = 3;
+  Status new_status = 4;
+  string reason = 5;
+  google.protobuf.Timestamp changed_at = 6;
+  string correlation_id = 7;
+}
+
+// DeliveryAttemptedEvent is published on delivery attempt
+message DeliveryAttemptedEvent {
+  string shipment_id = 1;
+  string order_id = 2;
+  bool successful = 3;
+  string status_message = 4;
+  google.protobuf.Timestamp attempted_at = 5;
+  string correlation_id = 6;
+}
+
+// DeliveryDelayedEvent is published when delivery is delayed
+message DeliveryDelayedEvent {
+  string shipment_id = 1;
+  string order_id = 2;
+  string reason = 3;
+  google.protobuf.Timestamp new_estimated_delivery = 4;
+  google.protobuf.Timestamp delayed_at = 5;
+  string correlation_id = 6;
+}

@@ -1,0 +1,26 @@
+# Placeholder kustomization.yaml for Argo CD to sync all services
+# Each service will have its own deployment, service, and config manifests
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - inventory/deployment.yaml
+  - inventory/service.yaml
+  - order/deployment.yaml
+  - order/service.yaml
+  - logistics/deployment.yaml
+  - logistics/service.yaml
+  - notification/deployment.yaml
+  - notification/service.yaml
+  - analytics/deployment.yaml
+  - analytics/service.yaml
+  - api-gateway/deployment.yaml
+  - api-gateway/service.yaml
+  - api-gateway/configmap.yaml
+
+namespace: rtscs-services
+
+commonLabels:
+  app.kubernetes.io/part-of: rtscs
+  app.kubernetes.io/managed-by: argocd

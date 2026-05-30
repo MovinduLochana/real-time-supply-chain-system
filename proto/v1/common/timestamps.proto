@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package rtscs.common.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/common/v1;commonv1";
+option java_package = "com.rtscs.proto.common.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// Timestamp wrapper with UTC enforcement
+message Timestamp {
+  google.protobuf.Timestamp utc = 1;
+}

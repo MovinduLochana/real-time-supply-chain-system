@@ -1,0 +1,84 @@
+name: Proto Validation
+on:
+  pull_request:
+    paths:
+      - 'proto/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'proto/**'
+
+jobs:
+  buf-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: bufbuild/buf-setup-action@v1
+
+      - name: Buf lint
+        run: buf lint proto/
+
+  buf-breaking:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: bufbuild/buf-setup-action@v1
+
+      - name: Buf breaking changes
+        run: buf breaking proto/ --against-input='.git#branch=main'
+
+  generate-code:
+    runs-on: ubuntu-latest
+    needs: [buf-lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bufbuild/buf-setup-action@v1
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install Protoc
+        run: |
+          apt-get update
+          apt-get install -y protobuf-compiler
+
+      - name: Generate code
+        run: bash scripts/gen-proto.sh
+
+      - name: Upload generated code artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-code
+          path: proto/generated/

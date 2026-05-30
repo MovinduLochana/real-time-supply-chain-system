@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-service
+  namespace: rtscs-services
+spec:
+  type: ClusterIP
+  ports:
+  - port: 50051
+    targetPort: 50051
+    protocol: TCP
+    name: grpc
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: analytics-service

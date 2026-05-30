@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package rtscs.analytics.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/analytics/v1;analyticsv1";
+option java_package = "com.rtscs.proto.analytics.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// DemandForecast predicts future inventory needs
+message DemandForecast {
+  string sku = 1;
+  int32 days_ahead = 2;
+  int32 forecasted_quantity = 3;
+  double confidence_score = 4;  // 0.0 to 1.0
+  google.protobuf.Timestamp forecast_timestamp = 5;
+}
+
+service AnalyticsService {
+  // GetDemandForecast returns predicted demand for an item
+  rpc GetDemandForecast (GetDemandForecastRequest) returns (DemandForecast);
+  
+  // GetAnalyticsReport returns aggregated metrics over a date range
+  rpc GetAnalyticsReport (GetAnalyticsReportRequest) returns (AnalyticsReport);
+}
+
+message GetDemandForecastRequest {
+  string sku = 1;
+  int32 days_ahead = 2;
+}
+
+message GetAnalyticsReportRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+  string report_type = 3;  // e.g., "SALES", "INVENTORY", "SHIPMENT"
+}
+
+message AnalyticsReport {
+  string report_id = 1;
+  string report_type = 2;
+  google.protobuf.Timestamp generated_at = 3;
+  google.protobuf.Timestamp start_date = 4;
+  google.protobuf.Timestamp end_date = 5;
+  map<string, string> metrics = 6;  // Key-value pairs of metric data
+}

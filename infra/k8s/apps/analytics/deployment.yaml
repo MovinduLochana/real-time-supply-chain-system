@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: rtscs-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytics-service
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+        version: v1
+    spec:
+      serviceAccountName: analytics-service
+      containers:
+      - name: analytics-service
+        image: placeholder/analytics-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 50051
+          name: grpc
+        - containerPort: 8000
+          name: http
+        env:
+        - name: POSTGRES_HOST
+          value: postgres.rtscs-data.svc.cluster.local
+        - name: POSTGRES_DB
+          value: rtscs_analytics
+        - name: KAFKA_BROKERS
+          value: kafka-bootstrap.rtscs-data.svc.cluster.local:9092
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi

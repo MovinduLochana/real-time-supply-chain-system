@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package rtscs.events.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/events/v1;eventsv1";
+option java_package = "com.rtscs.proto.events.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// OrderCreatedEvent is published when an order is successfully created
+message OrderCreatedEvent {
+  string order_id = 1;
+  string customer_id = 2;
+  double total_amount = 3;
+  string shipping_address = 4;
+  repeated OrderItem items = 5;
+  google.protobuf.Timestamp event_timestamp = 6;
+  string correlation_id = 7;
+  
+  message OrderItem {
+    string sku = 1;
+    int32 quantity = 2;
+    double unit_price = 3;
+  }
+}
+
+// OrderConfirmedEvent is published when order inventory is confirmed
+message OrderConfirmedEvent {
+  string order_id = 1;
+  google.protobuf.Timestamp confirmed_at = 2;
+  string correlation_id = 3;
+}
+
+// OrderShippedEvent is published when order is ready to ship
+message OrderShippedEvent {
+  string order_id = 1;
+  string shipment_id = 2;
+  string carrier = 3;
+  string tracking_number = 4;
+  google.protobuf.Timestamp shipped_at = 5;
+  string correlation_id = 6;
+}
+
+// OrderDeliveredEvent is published when order is delivered
+message OrderDeliveredEvent {
+  string order_id = 1;
+  string shipment_id = 2;
+  google.protobuf.Timestamp delivered_at = 3;
+  string correlation_id = 4;
+}
+
+// OrderCancelledEvent is published when order is cancelled
+message OrderCancelledEvent {
+  string order_id = 1;
+  string reason = 2;
+  google.protobuf.Timestamp cancelled_at = 3;
+  string correlation_id = 4;
+}
+
+// OrderFailedEvent is published when order processing fails
+message OrderFailedEvent {
+  string order_id = 1;
+  string error_message = 2;
+  google.protobuf.Timestamp failed_at = 3;
+  string correlation_id = 4;
+}

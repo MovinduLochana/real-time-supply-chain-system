@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package rtscs.inventory.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/inventory/v1;inventoryv1";
+option java_package = "com.rtscs.proto.inventory.v1";
+option java_multiple_files = true;
+
+import "rtscs/common/v1/error.proto";
+import "rtscs/inventory/v1/messages.proto";
+
+service InventoryService {
+  // GetStock retrieves current stock level for an item
+  rpc GetStock (GetStockRequest) returns (StockLevel);
+  
+  // UpdateStock adjusts inventory quantity
+  rpc UpdateStock (UpdateStockRequest) returns (UpdateStockResponse);
+  
+  // ReserveStock reserves inventory for an order
+  rpc ReserveStock (ReserveStockRequest) returns (Reservation);
+  
+  // ReleaseReservation releases previously reserved inventory
+  rpc ReleaseReservation (ReleaseReservationRequest) returns (ReleaseReservationResponse);
+  
+  // GetReservation retrieves reservation details
+  rpc GetReservation (GetReservationRequest) returns (Reservation);
+  
+  // ListItems returns available items (paginated)
+  rpc ListItems (ListItemsRequest) returns (ListItemsResponse);
+}
+
+message GetStockRequest {
+  string sku = 1;
+  string warehouse_location = 2;  // Optional: if empty, aggregate across warehouses
+}
+
+message UpdateStockRequest {
+  string sku = 1;
+  string warehouse_location = 2;
+  int32 quantity_delta = 3;       // Positive = add, negative = subtract
+  string reason = 4;              // e.g., "RESTOCK", "DAMAGED", "CORRECTION"
+}
+
+message UpdateStockResponse {
+  bool success = 1;
+  StockLevel updated_level = 2;
+}
+
+message ReserveStockRequest {
+  string order_id = 1;
+  repeated ReserveItem items = 2;
+  message ReserveItem {
+    string sku = 1;
+    int32 quantity = 2;
+  }
+}
+
+message ReleaseReservationRequest {
+  string reservation_id = 1;
+}
+
+message ReleaseReservationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetReservationRequest {
+  string reservation_id = 1;
+}
+
+message ListItemsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string category_filter = 3;
+}
+
+message ListItemsResponse {
+  repeated Item items = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+}

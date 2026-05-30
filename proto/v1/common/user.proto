@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package rtscs.common.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/common/v1;commonv1";
+option java_package = "com.rtscs.proto.common.v1";
+option java_multiple_files = true;
+
+// User represents an authenticated user context
+message User {
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+  repeated string roles = 4;  // e.g., "ADMIN", "CUSTOMER", "WAREHOUSE_STAFF"
+  string tenant_id = 5;       // Multi-tenancy support
+}
+
+// UserContext is passed through gRPC metadata for authorization
+message UserContext {
+  User user = 1;
+  string request_id = 2;      // Trace ID for distributed tracing
+  string correlation_id = 3;  // For cross-service tracing
+}

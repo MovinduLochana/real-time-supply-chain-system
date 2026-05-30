@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logistics-service
+  namespace: rtscs-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logistics-service
+  template:
+    metadata:
+      labels:
+        app: logistics-service
+        version: v1
+    spec:
+      serviceAccountName: logistics-service
+      containers:
+      - name: logistics-service
+        image: placeholder/logistics-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 50051
+          name: grpc
+        env:
+        - name: POSTGRES_HOST
+          value: postgres.rtscs-data.svc.cluster.local
+        - name: POSTGRES_DB
+          value: rtscs_logistics
+        - name: KAFKA_BROKERS
+          value: kafka-bootstrap.rtscs-data.svc.cluster.local:9092
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi

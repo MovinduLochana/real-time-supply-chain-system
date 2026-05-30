@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package rtscs.order.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/order/v1;orderv1";
+option java_package = "com.rtscs.proto.order.v1";
+option java_multiple_files = true;
+
+import "rtscs/order/v1/messages.proto";
+
+service OrderService {
+  // CreateOrder creates a new order and reserves inventory
+  rpc CreateOrder (CreateOrderRequest) returns (Order);
+  
+  // GetOrder retrieves order details
+  rpc GetOrder (GetOrderRequest) returns (Order);
+  
+  // ListOrders retrieves paginated list of orders
+  rpc ListOrders (ListOrdersRequest) returns (ListOrdersResponse);
+  
+  // CancelOrder cancels an order and releases reservations
+  rpc CancelOrder (CancelOrderRequest) returns (CancelOrderResponse);
+}
+
+message CreateOrderRequest {
+  string customer_id = 1;
+  repeated OrderLineItem line_items = 2;
+  string shipping_address = 3;
+  
+  message OrderLineItem {
+    string sku = 1;
+    int32 quantity = 2;
+    double unit_price = 3;
+  }
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message ListOrdersRequest {
+  string customer_id = 1;      // Optional: filter by customer
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+}
+
+message CancelOrderRequest {
+  string order_id = 1;
+  string reason = 2;
+}
+
+message CancelOrderResponse {
+  bool success = 1;
+  Order cancelled_order = 2;
+}

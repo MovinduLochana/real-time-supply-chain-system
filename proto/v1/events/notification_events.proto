@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package rtscs.events.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/events/v1;eventsv1";
+option java_package = "com.rtscs.proto.events.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// NotificationSentEvent is published when a notification is sent
+message NotificationSentEvent {
+  string notification_id = 1;
+  string user_id = 2;
+  enum Channel {
+    EMAIL = 0;
+    SMS = 1;
+    PUSH = 2;
+    IN_APP = 3;
+  }
+  Channel channel = 3;
+  string subject = 4;
+  string message_body = 5;
+  string related_order_id = 6;
+  google.protobuf.Timestamp sent_at = 7;
+  string correlation_id = 8;
+}
+
+// NotificationDeliveredEvent is published when notification is confirmed delivered
+message NotificationDeliveredEvent {
+  string notification_id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp delivered_at = 3;
+  string correlation_id = 4;
+}
+
+// NotificationFailedEvent is published when notification sending fails
+message NotificationFailedEvent {
+  string notification_id = 1;
+  string user_id = 2;
+  string error_message = 3;
+  google.protobuf.Timestamp failed_at = 4;
+  string correlation_id = 5;
+}

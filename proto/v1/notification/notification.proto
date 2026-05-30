@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package rtscs.notification.v1;
+
+option go_package = "github.com/rtscs/proto-go/gen/go/rtscs/notification/v1;notificationv1";
+option java_package = "com.rtscs.proto.notification.v1";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// Notification represents a message sent to a user
+message Notification {
+  string notification_id = 1;
+  string user_id = 2;
+  enum Channel {
+    EMAIL = 0;
+    SMS = 1;
+    PUSH = 2;
+    IN_APP = 3;
+  }
+  Channel channel = 3;
+  string subject = 4;
+  string message_body = 5;
+  enum Status {
+    PENDING = 0;
+    SENT = 1;
+    DELIVERED = 2;
+    FAILED = 3;
+  }
+  Status status = 6;
+  string related_order_id = 7;      // Link to order if applicable
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp sent_at = 9;
+}
+
+service NotificationService {
+  // SendNotification sends a notification to a user
+  rpc SendNotification (SendNotificationRequest) returns (Notification);
+  
+  // GetNotificationStatus retrieves notification details
+  rpc GetNotificationStatus (GetNotificationStatusRequest) returns (Notification);
+}
+
+message SendNotificationRequest {
+  string user_id = 1;
+  Notification.Channel channel = 2;
+  string subject = 3;
+  string message_body = 4;
+  string related_order_id = 5;
+}
+
+message GetNotificationStatusRequest {
+  string notification_id = 1;
+}
