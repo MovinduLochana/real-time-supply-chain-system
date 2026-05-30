@@ -1,0 +1,88 @@
+spring:
+  application:
+    name: inventory-service
+  profiles:
+    active: dev
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:rtscs_inventory}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+    topics:
+      inventory-events: inventory-events
+
+grpc:
+  server:
+    port: 50051
+    enable-keep-alive: true
+    keep-alive-time: 30s
+    keep-alive-timeout: 10s
+    permit-keep-alive-without-calls: true
+    max-inbound-message-size: 4194304  # 4MB
+  client:
+    # Will be configured for service-to-service calls if needed
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://${JAEGER_AGENT_HOST:localhost}:4317
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.rtscs: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/inventory-service.log
+
+inventory:
+  service:
+    cache-enabled: true
+    cache-ttl-minutes: 60
+    low-stock-threshold: 10
