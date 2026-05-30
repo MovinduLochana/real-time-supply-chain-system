@@ -1,0 +1,14 @@
+
+- hosts: localhost
+  tasks:
+    - name: Get kubeconfig from Terraform output
+      set_fact:
+        kubeconfig: "{{ lookup('file', 'tf-outputs.json') | from_json | json_query('kubeconfig') }}"
+
+    - name: Install Argo CD applications via Helm (or just configure Argo CD to watch Git)
+      community.kubernetes.helm:
+        name: my-inventory
+        chart_ref: ./charts/inventory-java
+        values_files:
+          - values-prod.yaml
+        kubeconfig: "{{ kubeconfig }}"
