@@ -3,8 +3,16 @@ kind: Deployment
 metadata:
   name: logistics-service
   namespace: rtscs-services
+  labels:
+    app: logistics-service
+    version: v1
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: logistics-service
@@ -15,24 +23,126 @@ spec:
         version: v1
     spec:
       serviceAccountName: logistics-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
       containers:
       - name: logistics-service
-        image: placeholder/logistics-service:latest
+        image: rtscs/logistics-service:latest
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
         ports:
-        - containerPort: 50051
-          name: grpc
+        - containerPort: 3001
+          name: http
+          protocol: TCP
         env:
-        - name: POSTGRES_HOST
-          value: postgres.rtscs-data.svc.cluster.local
-        - name: POSTGRES_DB
-          value: rtscs_logistics
+        # Service Configuration
+        - name: SERVICE_NAME
+          value: logistics-service
+        - name: SERVICE_PORT
+          value: "3001"
+        - name: RUST_LOG
+          value: info
+        - name: RUST_BACKTRACE
+          value: "1"
+        
+        # Database Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: logistics-url
+        - name: DATABASE_POOL_SIZE
+          value: "20"
+        - name: DATABASE_STATEMENT_CACHE_SIZE
+          value: "256"
+        
+        # Kafka Configuration
         - name: KAFKA_BROKERS
-          value: kafka-bootstrap.rtscs-data.svc.cluster.local:9092
+          value: kafka-broker-0.kafka-headless.rtscs-data.svc.cluster.local:9092,kafka-broker-1.kafka-headless.rtscs-data.svc.cluster.local:9092,kafka-broker-2.kafka-headless.rtscs-data.svc.cluster.local:9092
+        - name: KAFKA_GROUP_ID
+          value: logistics-service-group
+        - name: KAFKA_CONSUMER_TOPICS
+          value: order-events
+        - name: KAFKA_PRODUCER_TOPIC
+          value: logistics-events
+        
+        # Tracing Configuration
+        - name: OTEL_EXPORTER_JAEGER_AGENT_HOST
+          value: jaeger-agent.observability.svc.cluster.local
+        - name: OTEL_EXPORTER_JAEGER_AGENT_PORT
+          value: "6831"
+        - name: OTEL_SERVICE_NAME
+          value: logistics-service
+        - name: OTEL_TRACES_EXPORTER
+          value: jaeger
+        
+        # Health & Metrics
+        - name: METRICS_PORT
+          value: "9090"
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /var/cache/logistics
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
         resources:
           requests:
-            cpu: 200m
-            memory: 512Mi
+            cpu: 250m
+            memory: 256Mi
           limits:
             cpu: 1000m
-            memory: 1Gi
+            memory: 512Mi
+        
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+      
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - logistics-service
+              topologyKey: kubernetes.io/hostname
+      
+      terminationGracePeriodSeconds: 30

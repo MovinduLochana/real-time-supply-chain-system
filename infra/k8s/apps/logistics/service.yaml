@@ -3,12 +3,22 @@ kind: Service
 metadata:
   name: logistics-service
   namespace: rtscs-services
+  labels:
+    app: logistics-service
 spec:
   type: ClusterIP
-  ports:
-  - port: 50051
-    targetPort: 50051
-    protocol: TCP
-    name: grpc
   selector:
     app: logistics-service
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3001
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800

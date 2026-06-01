@@ -3,8 +3,16 @@ kind: Deployment
 metadata:
   name: analytics-service
   namespace: rtscs-services
+  labels:
+    app: analytics-service
+    version: v1
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: analytics-service
@@ -15,26 +23,133 @@ spec:
         version: v1
     spec:
       serviceAccountName: analytics-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
       containers:
       - name: analytics-service
-        image: placeholder/analytics-service:latest
+        image: rtscs/analytics-service:latest
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
         ports:
-        - containerPort: 50051
-          name: grpc
-        - containerPort: 8000
+        - containerPort: 3003
           name: http
+          protocol: TCP
         env:
-        - name: POSTGRES_HOST
-          value: postgres.rtscs-data.svc.cluster.local
-        - name: POSTGRES_DB
-          value: rtscs_analytics
+        # Service Configuration
+        - name: SERVICE_NAME
+          value: analytics-service
+        - name: SERVICE_PORT
+          value: "3003"
+        - name: LOG_LEVEL
+          value: info
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        
+        # DuckDB Configuration
+        - name: DB_PATH
+          value: /data/analytics.duckdb
+        - name: DB_READ_ONLY
+          value: "false"
+        - name: PARQUET_DIR
+          value: /data/parquet
+        
+        # Kafka Configuration
         - name: KAFKA_BROKERS
-          value: kafka-bootstrap.rtscs-data.svc.cluster.local:9092
+          value: kafka-broker-0.kafka-headless.rtscs-data.svc.cluster.local:9092,kafka-broker-1.kafka-headless.rtscs-data.svc.cluster.local:9092,kafka-broker-2.kafka-headless.rtscs-data.svc.cluster.local:9092
+        - name: KAFKA_GROUP_ID
+          value: analytics-service-group
+        - name: KAFKA_CONSUMER_TOPICS
+          value: order-events,inventory-events
+        - name: KAFKA_PRODUCER_TOPIC
+          value: analytics-events
+        - name: KAFKA_CONSUMER_THREADS
+          value: "2"
+        
+        # Analytics Configuration
+        - name: FORECAST_HORIZON_DAYS
+          value: "30"
+        - name: FORECAST_METHOD
+          value: prophet
+        - name: AGGREGATION_INTERVAL
+          value: "3600"
+        - name: CACHE_TTL_SECONDS
+          value: "300"
+        - name: ENABLE_PARQUET_EXPORT
+          value: "true"
+        
+        # Tracing Configuration
+        - name: OTEL_EXPORTER_JAEGER_AGENT_HOST
+          value: jaeger-agent.observability.svc.cluster.local
+        - name: OTEL_EXPORTER_JAEGER_AGENT_PORT
+          value: "6831"
+        - name: OTEL_SERVICE_NAME
+          value: analytics-service
+        - name: OTEL_TRACES_EXPORTER
+          value: jaeger
+        
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: tmp
+          mountPath: /tmp
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3003
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3003
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
         resources:
           requests:
-            cpu: 200m
+            cpu: 300m
             memory: 512Mi
           limits:
             cpu: 1000m
             memory: 1Gi
+        
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+      
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - analytics-service
+              topologyKey: kubernetes.io/hostname
+      
+      terminationGracePeriodSeconds: 30

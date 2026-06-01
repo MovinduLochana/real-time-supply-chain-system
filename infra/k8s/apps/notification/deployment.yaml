@@ -3,8 +3,16 @@ kind: Deployment
 metadata:
   name: notification-service
   namespace: rtscs-services
+  labels:
+    app: notification-service
+    version: v1
 spec:
-  replicas: 1
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: notification-service
@@ -15,28 +23,161 @@ spec:
         version: v1
     spec:
       serviceAccountName: notification-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
       containers:
       - name: notification-service
-        image: placeholder/notification-service:latest
+        image: rtscs/notification-service:latest
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
         ports:
-        - containerPort: 50051
-          name: grpc
+        - containerPort: 3002
+          name: http
+          protocol: TCP
         env:
-        - name: POSTGRES_HOST
-          value: postgres.rtscs-data.svc.cluster.local
-        - name: POSTGRES_DB
-          value: rtscs_notification
-        - name: KAFKA_BROKERS
-          value: kafka-bootstrap.rtscs-data.svc.cluster.local:9092
+        # Service Configuration
+        - name: SERVICE_NAME
+          value: notification-service
+        - name: SERVICE_PORT
+          value: "3002"
+        - name: LOG_LEVEL
+          value: info
+        
+        # Redis Configuration
         - name: REDIS_HOST
           value: redis.rtscs-data.svc.cluster.local
         - name: REDIS_PORT
           value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+        - name: REDIS_DB
+          value: "0"
+        - name: REDIS_MAX_RETRIES
+          value: "3"
+        
+        # Kafka Configuration
+        - name: KAFKA_BROKERS
+          value: kafka-broker-0.kafka-headless.rtscs-data.svc.cluster.local:9092,kafka-broker-1.kafka-headless.rtscs-data.svc.cluster.local:9092,kafka-broker-2.kafka-headless.rtscs-data.svc.cluster.local:9092
+        - name: KAFKA_GROUP_ID
+          value: notification-service-group
+        - name: KAFKA_CONSUMER_TOPICS
+          value: order-events,inventory-events
+        - name: KAFKA_PRODUCER_TOPIC
+          value: notification-events
+        
+        # Notification Service Configuration
+        - name: WORKER_POOL_SIZE
+          value: "10"
+        - name: MAX_RETRIES
+          value: "3"
+        - name: RETRY_BACKOFF_MS
+          value: "2000"
+        
+        # Email Configuration (SendGrid)
+        - name: SENDGRID_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: sendgrid-secret
+              key: api-key
+        - name: SENDGRID_FROM_EMAIL
+          value: noreply@rtscs.local
+        
+        # SMS Configuration (Twilio)
+        - name: TWILIO_ACCOUNT_SID
+          valueFrom:
+            secretKeyRef:
+              name: twilio-secret
+              key: account-sid
+        - name: TWILIO_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: twilio-secret
+              key: auth-token
+        - name: TWILIO_FROM_NUMBER
+          valueFrom:
+            secretKeyRef:
+              name: twilio-secret
+              key: from-number
+        
+        # FCM Configuration
+        - name: FCM_SERVER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fcm-secret
+              key: server-key
+        
+        # Tracing Configuration
+        - name: OTEL_EXPORTER_JAEGER_AGENT_HOST
+          value: jaeger-agent.observability.svc.cluster.local
+        - name: OTEL_EXPORTER_JAEGER_AGENT_PORT
+          value: "6831"
+        - name: OTEL_SERVICE_NAME
+          value: notification-service
+        - name: OTEL_TRACES_EXPORTER
+          value: jaeger
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
         resources:
           requests:
-            cpu: 100m
+            cpu: 200m
             memory: 256Mi
           limits:
             cpu: 500m
             memory: 512Mi
+        
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+      
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - notification-service
+              topologyKey: kubernetes.io/hostname
+      
+      terminationGracePeriodSeconds: 30

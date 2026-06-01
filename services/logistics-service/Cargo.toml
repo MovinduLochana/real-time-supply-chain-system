@@ -1,0 +1,42 @@
+[package]
+name = "logistics-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+hyper = { version = "1.1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+opentelemetry = { version = "0.20", features = ["rt-tokio"] }
+opentelemetry-jaeger = { version = "0.19", features = ["rt-tokio"] }
+tracing-opentelemetry = "0.21"
+log = "0.4"
+dotenv = "0.15"
+bytes = "1.5"
+tonic = { version = "0.10", features = ["codegen"] }
+prost = "0.12"
+prost-types = "0.12"
+curl = "0.4"
+
+[build-dependencies]
+tonic-build = "0.10"
+
+[[bin]]
+name = "logistics-service"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

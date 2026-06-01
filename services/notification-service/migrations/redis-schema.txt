@@ -1,0 +1,114 @@
+# Notification Service - Redis Schema
+
+## Data Structures
+
+### Notifications
+- **Key**: `notification:{id}`
+- **Type**: String (JSON)
+- **TTL**: 30 days
+- **Content**:
+  ```json
+  {
+    "id": "notification-uuid",
+    "user_id": "user-123",
+    "channel": "email|sms|push",
+    "recipient_id": "email@example.com|+1234567890|device-id",
+    "subject": "Notification subject (email only)",
+    "body": "Notification message",
+    "status": "PENDING|SENT|DELIVERED|FAILED|UNSUBSCRIBED",
+    "metadata": {
+      "event_type": "order_created|order_cancelled|low_stock_alert",
+      "order_id": "order-123",
+      "product_id": "product-456"
+    },
+    "retry_count": 0,
+    "max_retries": 3,
+    "created_at": "2024-01-01T00:00:00Z",
+    "sent_at": "2024-01-01T00:01:00Z",
+    "delivered_at": null,
+    "failed_at": null,
+    "error_message": "",
+    "correlation_id": "correlation-uuid"
+  }
+  ```
+
+### User Preferences
+- **Key**: `user-preferences:{user_id}`
+- **Type**: String (JSON)
+- **TTL**: No expiration (persistent)
+- **Content**:
+  ```json
+  {
+    "user_id": "user-123",
+    "email_opt_in": true,
+    "sms_opt_in": true,
+    "push_opt_in": true,
+    "do_not_disturb": false,
+    "do_not_disturb_end": null,
+    "channels": {
+      "email": "user@example.com",
+      "sms": "+1234567890",
+      "push": "device-id-123"
+    },
+    "updated_at": "2024-01-01T00:00:00Z"
+  }
+  ```
+
+### Notification Queues
+- **Key**: `notification-queue:{channel}`
+- **Type**: List (FIFO)
+- **Content**: Notification IDs
+- **Channels**:
+  - `notification-queue:email` - Email notifications queue
+  - `notification-queue:sms` - SMS notifications queue
+  - `notification-queue:push` - Push notifications queue
+
+## Usage Examples
+
+### Save Notification
+```
+SET notification:{id} {json} EX 2592000
+```
+
+### Get Notification
+```
+GET notification:{id}
+```
+
+### Enqueue Notification
+```
+RPUSH notification-queue:{channel} {notification_id}
+```
+
+### Dequeue Notification
+```
+LPOP notification-queue:{channel}
+```
+
+### Get Queue Length
+```
+LLEN notification-queue:{channel}
+```
+
+### Save User Preferences
+```
+SET user-preferences:{user_id} {json}
+```
+
+### Get User Preferences
+```
+GET user-preferences:{user_id}
+```
+
+## Cleanup Strategies
+
+1. **Automatic TTL**: Notifications older than 30 days are automatically removed
+2. **Manual Cleanup**: Can delete specific notifications using `DEL notification:{id}`
+3. **Queue Monitoring**: Monitor queue lengths to ensure no indefinite growth
+
+## Performance Considerations
+
+- Use connection pooling for Redis connections
+- Batch operations when possible
+- Consider sharding user preferences across multiple keys if user base grows
+- Monitor Redis memory usage and set appropriate maxmemory policies
